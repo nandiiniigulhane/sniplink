@@ -1,0 +1,104 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: urlshortner
+      MYSQL_USER: urlshortner
+      MYSQL_PASSWORD: urlshortner
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  url-service:
+    build: .
+    command: uvicorn services.url_service.main:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8001:8001"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: urlshortner
+      MYSQL_PASSWORD: urlshortner
+      MYSQL_DB: urlshortner
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    volumes:
+      - .:/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  auth-service:
+    build: .
+    command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8002 --reload
+    ports:
+      - "8002:8002"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: urlshortner
+      MYSQL_PASSWORD: urlshortner
+      MYSQL_DB: urlshortner
+    volumes:
+      - .:/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  api-gateway:
+    build: .
+    command: uvicorn services.api_gateway.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: urlshortner
+      MYSQL_PASSWORD: urlshortner
+      MYSQL_DB: urlshortner
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      URL_SERVICE_HOST: "url-service"
+      URL_SERVICE_PORT: "8001"
+      AUTH_SERVICE_HOST: "auth-service"
+      AUTH_SERVICE_PORT: "8002"
+      BASE_URL: "http://localhost:8000"
+      RATE_LIMIT_PER_MINUTE: "30"
+    volumes:
+      - .:/app
+    depends_on:
+      url-service:
+        condition: service_started
+      auth-service:
+        condition: service_started
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_PROXY: "http://api-gateway:8000"
+    depends_on:
+      - api-gateway
+
+volumes:
+  mysql_data:
