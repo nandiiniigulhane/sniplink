@@ -31,6 +31,7 @@ async def init_db():
                     alias VARCHAR(20) NOT NULL UNIQUE,
                     long_url TEXT NOT NULL,
                     is_custom BOOLEAN DEFAULT FALSE,
+                    password_hash VARCHAR(255) NULL,
                     user_id BIGINT NULL,
                     expires_at DATETIME NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -40,6 +41,13 @@ async def init_db():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """
             )
+            # Migration: add password_hash if column doesn't exist on existing tables
+            try:
+                await cur.execute(
+                    "ALTER TABLE urls ADD COLUMN password_hash VARCHAR(255) NULL AFTER is_custom"
+                )
+            except Exception:
+                pass  # Column already exists
             await cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS users (

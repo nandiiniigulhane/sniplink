@@ -4,6 +4,7 @@ interface ShortenResponse {
   alias: string;
   expires_at: string | null;
   is_custom: boolean;
+  has_password: boolean;
 }
 
 interface TokenResponse {
@@ -34,13 +35,14 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   return data as T;
 }
 
-export async function shortenUrl(longUrl: string, customAlias?: string, expiresInDays?: number): Promise<ShortenResponse> {
+export async function shortenUrl(longUrl: string, customAlias?: string, expiresInDays?: number, password?: string): Promise<ShortenResponse> {
   return request<ShortenResponse>('/api/shorten', {
     method: 'POST',
     body: JSON.stringify({
       long_url: longUrl,
       custom_alias: customAlias || undefined,
       expires_in_days: expiresInDays || undefined,
+      password: password || undefined,
     }),
   });
 }

@@ -8,6 +8,7 @@ class ShortenRequest(BaseModel):
     long_url: HttpUrl
     custom_alias: Optional[str] = None
     expires_in_days: Optional[int] = None
+    password: Optional[str] = None
 
     @field_validator("custom_alias")
     @classmethod
@@ -29,6 +30,15 @@ class ShortenRequest(BaseModel):
             raise ValueError("Expiration must be between 1 and 365 days")
         return v
 
+    @field_validator("password")
+    @classmethod
+    def validate_password_field(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if len(v) < 4:
+            raise ValueError("Password must be at least 4 characters")
+        return v
+
 
 class ShortenResponse(BaseModel):
     short_url: str
@@ -36,6 +46,16 @@ class ShortenResponse(BaseModel):
     alias: str
     expires_at: Optional[datetime] = None
     is_custom: bool
+    has_password: bool = False
+
+
+class PasswordVerifyRequest(BaseModel):
+    password: str
+
+
+class AliasLookupResponse(BaseModel):
+    needs_password: bool = False
+    alias: str
 
 
 class RegisterRequest(BaseModel):

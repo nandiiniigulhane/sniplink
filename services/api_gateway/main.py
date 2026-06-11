@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import RedirectResponse, Response, HTMLResponse
 import httpx
 
 from shared.config import Config
@@ -73,23 +73,51 @@ async def proxy_shorten(request: Request):
         return Response(content=resp.content, status_code=resp.status_code, headers=dict(resp.headers))
 
 
+@app.api_route("/api/verify/{alias}", methods=["POST"])
+async def proxy_verify(alias: str, request: Request):
+    async with httpx.AsyncClient(timeout=HTTPX_TIMEOUT) as client:
+        body = await request.body()
+        resp = await client.post(
+            f"{URL_SERVICE}/api/verify/{alias}",
+            content=body,
+            headers={"Content-Type": "application/json"},
+        )
+        return Response(content=resp.content, status_code=resp.status_code, headers=dict(resp.headers))
+
+
+@app.api_route("/api/lookup/{alias}", methods=["GET"])
+async def proxy_lookup(alias: str):
+    async with httpx.AsyncClient(timeout=HTTPX_TIMEOUT) as client:
+        resp = await client.get(f"{URL_SERVICE}/api/lookup/{alias}")
+        return Response(content=resp.content, status_code=resp.status_code, headers=dict(resp.headers))
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
 
-RESERVED_ALIASES = {"health", "api", "auth", "shorten", "login", "register", "favicon.ico", "robots.txt"}
+RESERVED_ALIASES = {"health", "api", "auth", "shorten", "login", "register", "verify", "lookup", "favicon.ico", "robots.txt"}
 
 
 @app.get("/{alias}")
 async def proxy_redirect(alias: str):
     if alias in RESERVED_ALIASES:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found or expired")
+
     async with httpx.AsyncClient(timeout=HTTPX_TIMEOUT, follow_redirects=False) as client:
         resp = await client.get(f"{URL_SERVICE}/{alias}")
+
         if resp.status_code == 404:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found or expired")
+
+        # Password-protected URLs return an HTML page
+        content_type = resp.headers.get("content-type", "")
+        if "text/html" in content_type:
+            return HTMLResponse(content=resp.content, status_code=200)
+
         location = resp.headers.get("location")
-        if not location:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found or expired")
-        return RedirectResponse(url=location, status_code=status.HTTP_301_MOVED_PERMANENTLY)
+        if location:
+            return RedirectResponse(url=location, status_code=status.HTTP_301_MOVED_PERMANENTLY)
+
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found or expired")

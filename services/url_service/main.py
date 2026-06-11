@@ -1,23 +1,29 @@
 from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from contextlib import asynccontextmanager
 import aiomysql
 import redis.asyncio as aioredis
 
 from shared.config import Config
-from shared.models import ShortenRequest, ShortenResponse
+from shared.models import ShortenRequest, ShortenResponse, PasswordVerifyRequest
 from shared.database import get_pool, init_db
 from shared.cache import get_redis
-from services.url_service.code_generator import generate_short_code
-from services.url_service.url_repository import create_url, get_url, alias_exists
+from services.url_service.code_generator import generate_short_code, seed_counter_from_db
+from services.url_service.url_repository import (
+    create_url, get_url, alias_exists, lookup_alias, verify_and_get_url,
+)
+from services.url_service.password_page import password_page_html
 
-RESERVED_ALIASES = {"health", "api", "auth", "shorten", "login", "register", "favicon.ico", "robots.txt"}
+RESERVED_ALIASES = {"health", "api", "auth", "shorten", "login", "register", "verify", "lookup", "favicon.ico", "robots.txt"}
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    pool = await get_pool()
+    cache = await get_redis()
+    await seed_counter_from_db(pool, cache)
     yield
 
 
@@ -38,7 +44,7 @@ async def get_db():
 async def get_cache():
     return await get_redis()
 
-# Optional user context from gateway header
+
 async def get_optional_user(request: Request) -> dict | None:
     user_id = request.headers.get("X-User-Id")
     if user_id:
@@ -53,7 +59,6 @@ async def shorten_url(
     db_pool: aiomysql.Pool = Depends(get_db),
     redis_client: aioredis.Redis = Depends(get_cache),
 ):
-    # If custom alias requested, validate uniqueness
     if body.custom_alias:
         if body.custom_alias in RESERVED_ALIASES:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This alias is reserved")
@@ -62,10 +67,9 @@ async def shorten_url(
         alias = body.custom_alias
         is_custom = True
     else:
-        alias = await generate_short_code(redis_client)
+        alias = await generate_short_code(redis_client, db_pool)
         is_custom = False
 
-    # Get optional user context
     user = await get_optional_user(request)
     user_id = user["id"] if user else None
 
@@ -75,6 +79,7 @@ async def shorten_url(
         alias=alias,
         long_url=str(body.long_url),
         is_custom=is_custom,
+        password=body.password,
         user_id=user_id,
         expires_in_days=body.expires_in_days,
     )
@@ -85,6 +90,7 @@ async def shorten_url(
         alias=result["alias"],
         expires_at=result["expires_at"],
         is_custom=result["is_custom"],
+        has_password=result["has_password"],
     )
 
 
@@ -93,10 +99,35 @@ async def health():
     return {"status": "ok"}
 
 
+@app.post("/api/verify/{alias}")
+async def verify_password(alias: str, body: PasswordVerifyRequest, db_pool: aiomysql.Pool = Depends(get_db), redis_client: aioredis.Redis = Depends(get_cache)):
+    long_url = await verify_and_get_url(db_pool, redis_client, alias, body.password)
+    if long_url is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+    return {"long_url": long_url, "alias": alias}
+
+
+@app.get("/api/lookup/{alias}")
+async def lookup(alias: str, db_pool: aiomysql.Pool = Depends(get_db)):
+    result = await lookup_alias(db_pool, alias)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found or expired")
+    return result
+
+
 @app.get("/{alias}")
-async def redirect_url(alias: str, db_pool: aiomysql.Pool = Depends(get_db), redis_client: aioredis.Redis = Depends(get_cache)):
+async def redirect_or_password(alias: str, db_pool: aiomysql.Pool = Depends(get_db), redis_client: aioredis.Redis = Depends(get_cache)):
     if alias in RESERVED_ALIASES:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found or expired")
+
+    # First check if it's a password-protected URL
+    meta = await lookup_alias(db_pool, alias)
+    if meta is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found or expired")
+
+    if meta["has_password"]:
+        return HTMLResponse(content=password_page_html(alias), status_code=200)
+
     long_url = await get_url(db_pool, redis_client, alias)
     if long_url is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found or expired")
