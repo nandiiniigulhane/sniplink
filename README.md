@@ -1,8 +1,19 @@
 # URL Shortner
 
-A high-performance URL shortening service built for scale — handles **100M daily users** with low-latency redirects, custom aliases, and expiration dates.
+A high-performance URL shortening service built for scale — handles **100M daily users** with low-latency redirects, custom aliases, password protection, and expiration dates.
 
 > Built with [Command Code](https://commandcode.ai) — the coding agent that learns your style.
+
+## Features
+
+- **Instant redirects** — Redis-backed cache, sub-millisecond lookups
+- **Password-protected URLs** — bcrypt-hashed, lock gate page for visitors
+- **Custom aliases** — choose your own short link (4–20 characters)
+- **Expiration dates** — auto-expire links after 1–365 days
+- **Dark / Light themes** — toggle persisted to localStorage, respects OS preference
+- **Anonymous or authenticated** — shorten without an account, or sign up to manage links
+- **Accessible** — semantic HTML, ARIA labels, keyboard nav, screen reader announcements, `prefers-reduced-motion` support
+- **Rate limited** — sliding window per IP, 30 req/min default
 
 ## Architecture
 
@@ -39,14 +50,11 @@ A high-performance URL shortening service built for scale — handles **100M dai
 ## Quick Start
 
 ```bash
-# Clone and start everything
 docker compose up --build
-
-# Open in browser
 open http://localhost:5173
 ```
 
-That's it. MySQL, Redis, all three backend services, and the frontend boot together.
+MySQL, Redis, all three backend services, and the frontend boot together.
 
 ## API Endpoints
 
@@ -55,7 +63,8 @@ All requests go through the gateway at `:8000`.
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/api/shorten` | Create a short URL |
-| `GET`  | `/{alias}` | Redirect to long URL (301) |
+| `GET`  | `/{alias}` | Redirect (or password gate for protected URLs) |
+| `POST` | `/api/verify/{alias}` | Submit password for protected URL |
 | `POST` | `/api/auth/register` | Create account |
 | `POST` | `/api/auth/login` | Sign in, get JWT |
 
@@ -67,34 +76,45 @@ curl -X POST http://localhost:8000/api/shorten \
   -d '{
     "long_url": "https://example.com/very/long/url",
     "custom_alias": "my-link",
-    "expires_in_days": 30
+    "expires_in_days": 30,
+    "password": "secret123"
   }'
 ```
 
-**Response:**
 ```json
 {
   "short_url": "http://localhost:8000/my-link",
   "long_url": "https://example.com/very/long/url",
   "alias": "my-link",
   "expires_at": "2026-07-11T00:00:00",
-  "is_custom": true
+  "is_custom": true,
+  "has_password": true
 }
 ```
 
 No account needed — anonymous shortening works out of the box. Add a `Bearer` token in the `Authorization` header to associate URLs with your account.
 
+### Password-Protected URLs
+
+When a visitor opens a password-protected short link, they see a styled gate page:
+
+1. **Browser** → `GET /my-link` → password gate page (HTML)
+2. **User enters password** → `POST /api/verify/my-link` with `{"password": "secret123"}`
+3. **Correct?** → redirect to long URL. **Wrong?** → "Incorrect password" error.
+
+Passwords are bcrypt-hashed in MySQL. Password-protected URLs are never cached in Redis.
+
 ## Design Decisions
 
 ### ID Generation at 100M DAU
-Redis atomic `INCR` counter starting at 62⁵ (≈916M), encoded to Base62. First short code is `100000` (6 characters). The namespace provides:
+Redis atomic `INCR` counter starting at 62⁵ (≈916M), encoded to Base62. First short code is `100000` (6 characters). The counter is seeded from existing DB aliases on startup so restarts never produce duplicates. Collision detection with DB-backed retry for belt-and-suspenders safety.
+
+The namespace provides:
 - **6-character codes**: ~56.8 billion total — ~568 days at 100M URLs/day
 - **7-character codes**: ~3.5 trillion total — decades of capacity
 
-No collisions. No extra infra. The counter naturally rolls from 6 to 7 characters as traffic grows.
-
 ### Redirect Latency
-Write-through caching to Redis on URL creation. Every redirect hits Redis first (sub-millisecond). Cache miss falls back to MySQL, then populates Redis. Expired URLs auto-evict from both Redis (TTL) and MySQL (checked on read).
+Write-through caching to Redis on URL creation (non-password URLs only). Every redirect hits Redis first (sub-millisecond). Cache miss falls back to MySQL, then populates Redis. Expired URLs auto-evict from both Redis (TTL) and MySQL.
 
 ### Rate Limiting
 Sliding window per IP using Redis sorted sets. Default: 30 requests/minute. Configurable via `RATE_LIMIT_PER_MINUTE`.
@@ -116,14 +136,21 @@ UrlShortner/
 ├── shared/                     # Cross-service library
 │   ├── config.py               # Env-based configuration
 │   ├── id_generator.py         # Base62 encoder/decoder
-│   ├── database.py             # MySQL pool + schema init
+│   ├── database.py             # MySQL pool + schema init + migrations
 │   ├── cache.py                # Redis client singleton
 │   └── models.py               # Pydantic request/response schemas
 ├── services/
 │   ├── api_gateway/            # Rate limiter · JWT extractor · HTTP proxy
-│   ├── url_service/            # Shorten · Redirect · Expiration logic
+│   ├── url_service/            # Shorten · Redirect · Password gate · Expiration
+│   │   ├── code_generator.py   # Redis counter seed + collision-safe generation
+│   │   ├── url_repository.py   # CRUD + bcrypt verify + cache strategy
+│   │   └── password_page.py    # Styled HTML password gate
 │   └── auth_service/           # Register · Login · JWT generation
 ├── frontend/                   # React 19 + TypeScript + Vite
+│   └── src/
+│       ├── App.tsx             # Main app with theme toggle, tabs, forms
+│       ├── api.ts              # Typed API client
+│       └── index.css           # Design system with dark/light palettes
 ├── docker-compose.yml          # MySQL · Redis · 3 backends · frontend
 ├── Dockerfile                  # Python service image
 └── requirements.txt            # Python dependencies
