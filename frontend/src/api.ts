@@ -7,6 +7,16 @@ export interface ShortenResponse {
   has_password: boolean;
 }
 
+export interface UrlHistoryItem {
+  alias: string;
+  long_url: string;
+  short_url: string;
+  is_custom: boolean;
+  has_password: boolean;
+  expires_at: string | null;
+  created_at: string | null;
+}
+
 interface TokenResponse {
   access_token: string;
   token_type: string;
@@ -59,4 +69,9 @@ export async function login(email: string, password: string): Promise<TokenRespo
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
+}
+
+export async function getMyUrls(): Promise<UrlHistoryItem[]> {
+  const data = await request<{ urls: UrlHistoryItem[] }>('/api/urls');
+  return data.urls;
 }

@@ -6,12 +6,12 @@ import aiomysql
 import redis.asyncio as aioredis
 
 from shared.config import Config
-from shared.models import ShortenRequest, ShortenResponse, PasswordVerifyRequest
+from shared.models import ShortenRequest, ShortenResponse, PasswordVerifyRequest, UrlHistoryResponse
 from shared.database import get_pool, init_db
 from shared.cache import get_redis
 from services.url_service.code_generator import generate_short_code, seed_counter_from_db
 from services.url_service.url_repository import (
-    create_url, get_url, alias_exists, lookup_alias, verify_and_get_url,
+    create_url, get_url, alias_exists, lookup_alias, verify_and_get_url, get_user_urls,
 )
 from services.url_service.password_page import password_page_html
 
@@ -113,6 +113,32 @@ async def lookup(alias: str, db_pool: aiomysql.Pool = Depends(get_db)):
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found or expired")
     return result
+
+
+@app.get("/api/urls", response_model=UrlHistoryResponse)
+async def list_user_urls(
+    request: Request,
+    db_pool: aiomysql.Pool = Depends(get_db),
+):
+    user = await get_optional_user(request)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+
+    rows = await get_user_urls(db_pool, user["id"])
+    return UrlHistoryResponse(
+        urls=[
+            {
+                "alias": r["alias"],
+                "long_url": r["long_url"],
+                "short_url": f"{Config.BASE_URL}/{r['alias']}",
+                "is_custom": r["is_custom"],
+                "has_password": r["has_password"],
+                "expires_at": r["expires_at"],
+                "created_at": r["created_at"],
+            }
+            for r in rows
+        ]
+    )
 
 
 @app.get("/{alias}")

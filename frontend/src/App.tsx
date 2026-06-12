@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react';
-import { shortenUrl, login, register, type ShortenResponse } from './api';
+import { shortenUrl, login, register, getMyUrls, type ShortenResponse, type UrlHistoryItem } from './api';
 import QRCode from 'qrcode';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
@@ -20,6 +20,7 @@ function App() {
   const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [authClosing, setAuthClosing] = useState(false);
   const { announcement, announce } = useAnnounce();
+  const [urlHistoryKey, setUrlHistoryKey] = useState(0);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window !== 'undefined') return (localStorage.getItem('theme') as 'dark' | 'light') || 'dark';
     return 'dark';
@@ -76,7 +77,7 @@ function App() {
             </div>
 
             <div style={{ animation: 'fadeInUp 0.6s ease-out 0.15s', animationFillMode: 'both' }}>
-              <UrlShortenerBar onSuccess={() => announce('URL shortened successfully')} />
+              <UrlShortenerBar onSuccess={() => { announce('URL shortened successfully'); setUrlHistoryKey(k => k + 1); }} />
             </div>
           </div>
         </section>
@@ -129,6 +130,11 @@ function App() {
             </div>
           </div>
         </section>
+
+        {/* ─── URL History (logged in users) ─── */}
+        {user && (
+          <UrlHistory key={urlHistoryKey} />
+        )}
       </main>
 
       {/* ─── Auth Modal ─── */}
@@ -142,6 +148,96 @@ function App() {
         <span>Built for speed</span>
       </footer>
     </>
+  );
+}
+
+/* ─── URL History ─── */
+function UrlHistory() {
+  const [urls, setUrls] = useState<UrlHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [copiedAlias, setCopiedAlias] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true); setError('');
+    getMyUrls()
+      .then(data => { if (!cancelled) setUrls(data); })
+      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load history'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleCopy = async (url: string, alias: string) => {
+    await navigator.clipboard.writeText(url);
+    setCopiedAlias(alias);
+    setTimeout(() => setCopiedAlias(null), 2000);
+  };
+
+  if (loading) {
+    return (
+      <section style={{ padding: '60px 24px' }}>
+        <div className="container" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+          <Spinner />&nbsp; Loading your links…
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section style={{ padding: '60px 24px' }}>
+        <div className="container"><div className="error-box">{error}</div></div>
+      </section>
+    );
+  }
+
+  if (urls.length === 0) {
+    return (
+      <section style={{ padding: '60px 24px' }}>
+        <div className="container" style={{ textAlign: 'center' }}>
+          <div className="section-header">
+            <h2>Your Links</h2>
+            <p>You haven't created any links yet. Shorten your first URL above!</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section style={{ padding: '80px 24px', background: 'var(--surface-raised)' }}>
+      <div className="container">
+        <div className="section-header">
+          <h2>Your Links</h2>
+          <p>{urls.length} link{urls.length !== 1 ? 's' : ''} created</p>
+        </div>
+        <div className="history-list">
+          {urls.map((u, i) => (
+            <div key={u.alias} className="history-item" style={{ animation: 'fadeInUp 0.4s ease-out', animationFillMode: 'both', animationDelay: `${i * 0.05}s` }}>
+              <div className="history-item-main">
+                <div className="history-item-header">
+                  <a href={u.short_url} target="_blank" rel="noopener noreferrer" className="history-short-url">{u.short_url}</a>
+                  {u.has_password && <span className="history-badge history-badge-locked"><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Locked</span>}
+                  {u.expires_at && <span className="history-badge history-badge-expiry">Expires {new Date(u.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+                </div>
+                <div className="history-long-url" title={u.long_url}>{u.long_url}</div>
+                <div className="history-item-meta">
+                  <span>Created {u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
+                  {u.is_custom && <span className="history-badge history-badge-custom">Custom</span>}
+                </div>
+              </div>
+              <div className="history-item-actions">
+                <button onClick={() => handleCopy(u.short_url, u.alias)} className="btn-ghost" style={{ padding: '6px 14px', fontSize: 12 }}>
+                  {copiedAlias === u.alias ? 'Copied!' : 'Copy'}
+                </button>
+                <a href={u.short_url} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ padding: '6px 14px', fontSize: 12, textDecoration: 'none' }}>Open</a>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 

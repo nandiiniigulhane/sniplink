@@ -86,3 +86,17 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     email: str
+
+
+class UrlHistoryItem(BaseModel):
+    alias: str
+    long_url: str
+    short_url: str
+    is_custom: bool
+    has_password: bool = False
+    expires_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+
+class UrlHistoryResponse(BaseModel):
+    urls: list[UrlHistoryItem]

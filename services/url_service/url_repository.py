@@ -149,3 +149,27 @@ async def alias_exists(db_pool: aiomysql.Pool, alias: str) -> bool:
         async with conn.cursor() as cur:
             await cur.execute("SELECT 1 FROM urls WHERE alias = %s LIMIT 1", (alias,))
             return await cur.fetchone() is not None
+
+
+async def get_user_urls(db_pool: aiomysql.Pool, user_id: int) -> list[dict]:
+    async with db_pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                "SELECT alias, long_url, is_custom, password_hash, expires_at, created_at "
+                "FROM urls "
+                "WHERE user_id = %s AND (expires_at IS NULL OR expires_at > %s) "
+                "ORDER BY created_at DESC LIMIT 50",
+                (user_id, datetime.utcnow()),
+            )
+            rows = await cur.fetchall()
+            return [
+                {
+                    "alias": row["alias"],
+                    "long_url": row["long_url"],
+                    "is_custom": row["is_custom"],
+                    "has_password": row["password_hash"] is not None,
+                    "expires_at": row["expires_at"],
+                    "created_at": row["created_at"],
+                }
+                for row in rows
+            ]

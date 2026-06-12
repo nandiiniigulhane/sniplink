@@ -92,6 +92,21 @@ async def proxy_lookup(alias: str):
         return Response(content=resp.content, status_code=resp.status_code, headers=dict(resp.headers))
 
 
+@app.api_route("/api/urls", methods=["GET"])
+async def proxy_list_urls(request: Request):
+    user = extract_user_context(request)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+
+    async with httpx.AsyncClient(timeout=HTTPX_TIMEOUT) as client:
+        headers = {
+            "Content-Type": "application/json",
+            "X-User-Id": str(user["id"]),
+        }
+        resp = await client.get(f"{URL_SERVICE}/api/urls", headers=headers)
+        return Response(content=resp.content, status_code=resp.status_code, headers=dict(resp.headers))
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
