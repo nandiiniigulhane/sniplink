@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react';
 import { shortenUrl, login, register, type ShortenResponse } from './api';
+import QRCode from 'qrcode';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 type AuthMode = 'login' | 'register' | null;
@@ -194,6 +195,7 @@ function UrlShortenerBar({ onSuccess }: { onSuccess: () => void }) {
   const [result, setResult] = useState<ShortenResponse | null>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -209,6 +211,24 @@ function UrlShortenerBar({ onSuccess }: { onSuccess: () => void }) {
   };
 
   const handleCopy = async () => { if (!result) return; await navigator.clipboard.writeText(result.short_url); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+
+  const handleDownloadQr = () => {
+    if (!qrDataUrl || !result) return;
+    const a = document.createElement('a');
+    a.href = qrDataUrl;
+    a.download = `qr-${result.short_url.split('/').pop()}.png`;
+    a.click();
+  };
+
+  useEffect(() => {
+    if (result) {
+      QRCode.toDataURL(result.short_url, { width: 200, margin: 2, color: { dark: '#0d0d16', light: '#ffffff' } })
+        .then(setQrDataUrl)
+        .catch(() => setQrDataUrl(null));
+    } else {
+      setQrDataUrl(null);
+    }
+  }, [result]);
 
   return (
     <div className="hero-card" role="form" aria-label="URL shortener">
@@ -259,19 +279,32 @@ function UrlShortenerBar({ onSuccess }: { onSuccess: () => void }) {
         {/* Result */}
         {result && (
           <article className="success-card" aria-label="Shortened URL result">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, color: 'var(--success)', fontWeight: 700 }}>
-                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Link ready!
-                {result.has_password && <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.15)', color: 'var(--warning)', fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Locked</span>}
-                {result.expires_at && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Expires {new Date(result.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'var(--surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-              <a href={result.short_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontSize: 15, fontWeight: 600, flex: 1, wordBreak: 'break-all' }}>{result.short_url}</a>
-              <button onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy link'} className="btn-ghost" style={{ background: copied ? 'var(--success)' : undefined, color: copied ? '#fff' : undefined, border: copied ? 'none' : undefined, padding: '8px 16px', fontSize: 13 }}>
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
+            <div className="success-card-layout">
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, color: 'var(--success)', fontWeight: 700 }}>
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Link ready!
+                  </span>
+                  {result.has_password && <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.15)', color: 'var(--warning)', fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Locked</span>}
+                  {result.expires_at && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Expires {new Date(result.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'var(--surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 10 }}>
+                  <a href={result.short_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontSize: 15, fontWeight: 600, flex: 1, wordBreak: 'break-all' }}>{result.short_url}</a>
+                  <button onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy link'} className="btn-ghost" style={{ background: copied ? 'var(--success)' : undefined, color: copied ? '#fff' : undefined, border: copied ? 'none' : undefined, padding: '8px 16px', fontSize: 13 }}>
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+              {qrDataUrl && (
+                <div className="qr-section">
+                  <img src={qrDataUrl} alt="QR code for shortened URL" className="qr-image" />
+                  <button onClick={handleDownloadQr} className="btn-ghost qr-download-btn">
+                    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download QR
+                  </button>
+                </div>
+              )}
             </div>
           </article>
         )}
