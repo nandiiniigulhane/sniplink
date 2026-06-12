@@ -54,87 +54,81 @@ function App() {
     <>
       <div aria-live="polite" aria-atomic="true" className="sr-only">{announcement}</div>
 
-      <button onClick={toggleTheme} className="theme-toggle"
-        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
-        {theme === 'dark' ? (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        ) : (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        )}
-      </button>
+      <AppHeader user={user} openAuth={openAuth} onSignOut={handleSignOut} theme={theme} toggleTheme={toggleTheme} />
 
-      {/* ─── Hero ─── */}
-      <section style={{ position: 'relative', padding: '100px 24px 80px', textAlign: 'center', overflow: 'hidden' }}>
-        <div className="hero-bg" /><div className="hero-grid" />
-        <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ animation: 'fadeInUp 0.6s ease-out' }}>
-            <span style={{ display: 'inline-block', padding: '6px 16px', borderRadius: 100, background: 'var(--surface-glass)', backdropFilter: 'blur(12px)', border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--primary-soft)', marginBottom: 24, letterSpacing: '0.3px' }}>
-              Open source · free forever
-            </span>
-            <h1 style={{ fontSize: 'clamp(42px, 8vw, 72px)', fontWeight: 900, letterSpacing: '-1.5px', lineHeight: 1.06, marginBottom: 20 }}>
-              Shorten links,{' '}
-              <span style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent-1), var(--accent-2))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>instantly</span>
-            </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 18, maxWidth: 520, margin: '0 auto 48px', lineHeight: 1.6 }}>
-              A blazing fast URL shortener with custom aliases, password protection, expiration dates, and dark mode — no account required.
-            </p>
-          </div>
+      <main>
+        {/* ─── Hero ─── */}
+        <section className="hero-section" style={{ textAlign: 'center', overflow: 'hidden' }}>
+          <div className="hero-bg" /><div className="hero-grid" />
+          <div className="container" style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ animation: 'fadeInUp 0.6s ease-out' }}>
+              <span style={{ display: 'inline-block', padding: '6px 16px', borderRadius: 100, background: 'var(--surface-glass)', backdropFilter: 'blur(12px)', border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--primary-soft)', marginBottom: 24, letterSpacing: '0.3px' }}>
+                Open source · free forever
+              </span>
+              <h1 style={{ fontSize: 'clamp(42px, 8vw, 72px)', fontWeight: 900, letterSpacing: '-1.5px', lineHeight: 1.06, marginBottom: 20 }}>
+                Shorten links,{' '}
+                <span style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent-1), var(--accent-2))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>instantly</span>
+              </h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 18, maxWidth: 520, margin: '0 auto 48px', lineHeight: 1.6 }}>
+                A blazing fast URL shortener with custom aliases, password protection, expiration dates, and dark mode — no account required.
+              </p>
+            </div>
 
-          <div style={{ animation: 'fadeInUp 0.6s ease-out 0.15s', animationFillMode: 'both' }}>
-            <UrlShortenerBar onSuccess={() => announce('URL shortened successfully')} openAuth={openAuth} user={user} onSignOut={handleSignOut} />
+            <div style={{ animation: 'fadeInUp 0.6s ease-out 0.15s', animationFillMode: 'both' }}>
+              <UrlShortenerBar onSuccess={() => announce('URL shortened successfully')} />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ─── Features ─── */}
-      <section style={{ padding: '80px 24px' }}>
-        <div className="container">
-          <div className="section-header" style={{ animation: 'fadeInUp 0.6s ease-out', animationFillMode: 'both' }}>
-            <h2>Everything you need</h2>
-            <p>Designed for speed, privacy, and ease of use.</p>
+        {/* ─── Features ─── */}
+        <section style={{ padding: '80px 24px' }}>
+          <div className="container">
+            <div className="section-header" style={{ animation: 'fadeInUp 0.6s ease-out', animationFillMode: 'both' }}>
+              <h2>Everything you need</h2>
+              <p>Designed for speed, privacy, and ease of use.</p>
+            </div>
+            <div className="features-grid">
+              {[
+                { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>, iconBg: 'linear-gradient(135deg, #6366f1, #a855f7)', title: 'Lightning Fast', desc: 'Redis-powered cache delivers sub-millisecond redirects. Your users won\'t wait.' },
+                { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>, iconBg: 'linear-gradient(135deg, #06b6d4, #0ea5e9)', title: 'Password Protected', desc: 'Lock any link with a password. Visitors must verify before redirecting.' },
+                { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, iconBg: 'linear-gradient(135deg, #f59e0b, #f97316)', title: 'Auto Expiry', desc: 'Set links to expire in days. Auto-cleanup from both cache and database.' },
+                { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>, iconBg: 'linear-gradient(135deg, #22c55e, #16a34a)', title: 'Custom Aliases', desc: 'Pick your own short code or let us generate a unique one. Your choice.' },
+                { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>, iconBg: 'linear-gradient(135deg, #ef4444, #dc2626)', title: 'No Signup Required', desc: 'Shorten URLs anonymously. Create an account only if you want to manage links.' },
+                { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>, iconBg: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', title: 'Dark & Light Mode', desc: 'System-aware theme switching. Persisted to localStorage. Smooth transitions.' },
+              ].map((f, i) => (
+                <div key={i} className="feature-card" style={{ animation: 'fadeInUp 0.6s ease-out', animationFillMode: 'both', animationDelay: `${0.1 * i}s` }}>
+                  <div className="feature-icon" style={{ background: f.iconBg, color: '#fff' }} aria-hidden="true">{f.icon}</div>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{f.title}</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>{f.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="features-grid">
-            {[
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>, iconBg: 'linear-gradient(135deg, #6366f1, #a855f7)', title: 'Lightning Fast', desc: 'Redis-powered cache delivers sub-millisecond redirects. Your users won\'t wait.' },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>, iconBg: 'linear-gradient(135deg, #06b6d4, #0ea5e9)', title: 'Password Protected', desc: 'Lock any link with a password. Visitors must verify before redirecting.' },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, iconBg: 'linear-gradient(135deg, #f59e0b, #f97316)', title: 'Auto Expiry', desc: 'Set links to expire in days. Auto-cleanup from both cache and database.' },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>, iconBg: 'linear-gradient(135deg, #22c55e, #16a34a)', title: 'Custom Aliases', desc: 'Pick your own short code or let us generate a unique one. Your choice.' },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>, iconBg: 'linear-gradient(135deg, #ef4444, #dc2626)', title: 'No Signup Required', desc: 'Shorten URLs anonymously. Create an account only if you want to manage links.' },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>, iconBg: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', title: 'Dark & Light Mode', desc: 'System-aware theme switching. Persisted to localStorage. Smooth transitions.' },
-            ].map((f, i) => (
-              <div key={i} className="feature-card" style={{ animation: 'fadeInUp 0.6s ease-out', animationFillMode: 'both', animationDelay: `${0.1 * i}s` }}>
-                <div className="feature-icon" style={{ background: f.iconBg, color: '#fff' }} aria-hidden="true">{f.icon}</div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{f.title}</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ─── How It Works ─── */}
-      <section style={{ padding: '80px 24px', background: 'var(--surface-raised)' }}>
-        <div className="container">
-          <div className="section-header">
-            <h2>How it works</h2>
-            <p>Three simple steps to shorten and share your links.</p>
+        {/* ─── How It Works ─── */}
+        <section style={{ padding: '80px 24px', background: 'var(--surface-raised)' }}>
+          <div className="container">
+            <div className="section-header">
+              <h2>How it works</h2>
+              <p>Three simple steps to shorten and share your links.</p>
+            </div>
+            <div className="steps-row">
+              {[
+                { step: '1', title: 'Paste your URL', desc: 'Drop any long link into the shortener. We\'ll validate and prepare it.' },
+                { step: '2', title: 'Customize & protect', desc: 'Add a custom alias, set an expiration date, or password-lock the link.' },
+                { step: '3', title: 'Share anywhere', desc: 'Copy the short link and share it. Anyone can use it — no account needed.' },
+              ].map((s, i) => (
+                <div key={i} className="step-card" style={{ animation: 'fadeInUp 0.6s ease-out', animationFillMode: 'both', animationDelay: `${0.15 * i}s` }}>
+                  <div className="step-number">{s.step}</div>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{s.title}</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>{s.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="steps-row">
-            {[
-              { step: '1', title: 'Paste your URL', desc: 'Drop any long link into the shortener. We\'ll validate and prepare it.' },
-              { step: '2', title: 'Customize & protect', desc: 'Add a custom alias, set an expiration date, or password-lock the link.' },
-              { step: '3', title: 'Share anywhere', desc: 'Copy the short link and share it. Anyone can use it — no account needed.' },
-            ].map((s, i) => (
-              <div key={i} className="step-card" style={{ animation: 'fadeInUp 0.6s ease-out', animationFillMode: 'both', animationDelay: `${0.15 * i}s` }}>
-                <div className="step-number">{s.step}</div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{s.title}</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       {/* ─── Auth Modal ─── */}
       {authMode && (
@@ -150,13 +144,47 @@ function App() {
   );
 }
 
-/* ─── Inline URL Shortener Bar ─── */
-function UrlShortenerBar({ onSuccess, openAuth, user, onSignOut }: {
-  onSuccess: () => void;
-  openAuth: (m: AuthMode) => void;
+/* ─── Header ─── */
+function AppHeader({ user, openAuth, onSignOut, theme, toggleTheme }: {
   user: { email: string } | null;
+  openAuth: (m: AuthMode) => void;
   onSignOut: () => void;
+  theme: 'dark' | 'light';
+  toggleTheme: () => void;
 }) {
+  return (
+    <header className="app-header">
+      <div className="container header-inner">
+        <a href="/" className="header-brand">URL Shortner</a>
+        <div className="header-actions">
+          <button onClick={toggleTheme} className="theme-toggle"
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+            {theme === 'dark' ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            )}
+          </button>
+          {!user ? (
+            <>
+              <button type="button" onClick={() => openAuth('login')} className="btn-ghost btn-header">Sign In</button>
+              <button type="button" onClick={() => openAuth('register')} className="btn-primary btn-header">Sign Up Free</button>
+            </>
+          ) : (
+            <div className="header-user">
+              <span className="header-email">{user.email}</span>
+              <button type="button" onClick={onSignOut} className="btn-ghost btn-header">Sign out</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ─── Inline URL Shortener Bar ─── */
+function UrlShortenerBar({ onSuccess }: { onSuccess: () => void }) {
   const [longUrl, setLongUrl] = useState('');
   const [customAlias, setCustomAlias] = useState('');
   const [expiresInDays, setExpiresInDays] = useState('');
@@ -185,9 +213,9 @@ function UrlShortenerBar({ onSuccess, openAuth, user, onSignOut }: {
   return (
     <div className="hero-card" role="form" aria-label="URL shortener">
       <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* Top bar: input + user/auth buttons */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+        {/* Top bar: input + button */}
+        <div className="shortener-row">
+          <div className="shortener-input-wrap">
             <label htmlFor="long-url" className="sr-only">Long URL</label>
             <input ref={inputRef} id="long-url" type="text"
               value={longUrl} onChange={e => { setLongUrl(e.target.value); if (error) setError(''); }}
@@ -205,21 +233,6 @@ function UrlShortenerBar({ onSuccess, openAuth, user, onSignOut }: {
           <button type="submit" disabled={status === 'loading'} aria-busy={status === 'loading'} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
             {status === 'loading' ? <><Spinner /> Shortening</> : 'Shorten'}
           </button>
-
-          {!user && (
-            <>
-              <button type="button" onClick={() => openAuth('login')} className="btn-ghost">Sign In</button>
-              <button type="button" onClick={() => openAuth('register')} className="btn-primary" style={{ background: 'linear-gradient(135deg, var(--success), #16a34a)', boxShadow: 'none' }}>Sign Up Free</button>
-            </>
-          )}
-          {user && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{user.email}</strong>
-              </span>
-              <button type="button" onClick={onSignOut} className="btn-ghost" style={{ fontSize: 12, padding: '6px 14px' }}>Sign out</button>
-            </div>
-          )}
         </div>
 
         {/* Error */}
