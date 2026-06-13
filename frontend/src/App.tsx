@@ -11,7 +11,7 @@ async function shareQr(dataUrl: string, alias: string): Promise<void> {
   const file = new File([blob], `qr-${alias}.png`, { type: 'image/png' });
 
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ files: [file], title: 'QR Code' });
+    await navigator.share({ files: [file] });
   } else {
     const a = document.createElement('a');
     a.href = dataUrl;
